@@ -6,26 +6,23 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configuración CORS para permitir peticiones desde GitHub Pages
-const allowedOrigins = ['https://tu-usuario.github.io']; // Reemplaza con tu dominio de GitHub Pages
-app.use(cors({
-  origin: allowedOrigins
-}));
+// Middleware
+app.use(cors());
 app.use(express.json());
 
-// Pool de conexiones a MySQL
-onst pool = mysql.createPool({
-    host: process.env.MYSQL_HOST,
-    port: process.env.MYSQL_PORT,
-    user: process.env.MYSQL_USER,
-    password: process.env.MYSQL_PASSWORD,
-    database: process.env.MYSQL_DATABASE,
+// Configuración de la base de datos desde variables de entorno
+const pool = mysql.createPool({
+    host: process.env.DB_HOST || process.env.MYSQL_HOST,
+    port: process.env.DB_PORT || process.env.MYSQL_PORT || 3306,
+    user: process.env.DB_USER || process.env.MYSQL_USER || 'root',
+    password: process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD,
+    database: process.env.DB_NAME || process.env.MYSQL_DATABASE || 'railway',
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
 });
 
-// Ruta de salud
+// Ruta de prueba
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
@@ -36,7 +33,7 @@ app.get('/api/ramos', async (req, res) => {
         const [rows] = await pool.query('SELECT * FROM ramos ORDER BY fecha DESC, id DESC');
         res.json({ success: true, data: rows });
     } catch (error) {
-        console.error(error);
+        console.error('Error en GET /api/ramos:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -60,7 +57,7 @@ app.post('/api/ramos/batch', async (req, res) => {
         );
         res.status(201).json({ success: true, count: result.affectedRows });
     } catch (error) {
-        console.error(error);
+        console.error('Error en POST /api/ramos/batch:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -74,11 +71,12 @@ app.delete('/api/ramos/:id', async (req, res) => {
         }
         res.json({ success: true, message: 'Eliminado' });
     } catch (error) {
-        console.error(error);
+        console.error('Error en DELETE /api/ramos/:id', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+// Iniciar servidor
+app.listen(PORT, () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
 });
